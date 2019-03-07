@@ -88,7 +88,6 @@ class GUI(Frame):
                 messagebox.showinfo("Error", "Something happened. Check the stacktrace.")
                 raise Exception("Something happened")
             img = None
-        print('next:', img)
         return img
 
     def setupFolders(self):
