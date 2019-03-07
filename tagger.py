@@ -8,18 +8,21 @@ except ImportError:
 from  PIL import ImageTk, Image
 import os, shutil
 
+WIDTH=800
+HEIGHT=600
 
 class GUI(Frame):
 
     def __init__(self, master=None):
+        global WIDTH, HEIGHT
         self.wdir = ''
         self.wimg = ''
         self.working_image_index = 0
 
         Frame.__init__(self, master)
-        w,h = 800, 600
-        master.minsize(width=w, height=h)
-        master.maxsize(width=w, height=h)
+        w, h = WIDTH, HEIGHT
+        self.imgWidth, self.imgHeight = WIDTH-50, HEIGHT-50
+        master.minsize(width=300, height=300)
         self.pack()
 
         self.file = Button(self, text='Browse', command=self.set_working_dir)
@@ -37,10 +40,14 @@ class GUI(Frame):
 
         master.bind('k', self.keep_image)
         master.bind('d', self.delete_image)
+        master.bind('<Configure>', self.on_resize)
 
-    def choose(self):
-        ifile = tkFileDialog.askopenfile(parent=self,mode='rb',title='Choose a file')
-        path = ifile.name
+        self.master = master
+
+    def on_resize(self, event):
+        self.imgWidth, self.imgHeight = self.master.winfo_width()-50, self.master.winfo_height()-50
+        if self.image.width() != 0:
+            self.updateImage(False)
 
     def set_working_dir(self):
         from tkinter import filedialog
@@ -64,13 +71,17 @@ class GUI(Frame):
         shutil.move(self.wdir+self.wimg, self.wdir+'delete/'+self.wimg)
         self.set_next_image()
 
-    def updateImage(self):
-        img = self.getNextImage()
-        if img != None:
-            img = self.fittableImage(img)
+    def updateImage(self, new=True):
+        if not new:
+            img = self.fittableImage(self.tmpImg)
             self.image = ImageTk.PhotoImage(img)
         else:
-            self.image = PhotoImage()
+            self.tmpImg = self.getNextImage()
+            if self.tmpImg != None:
+                img = self.fittableImage(self.tmpImg)
+                self.image = ImageTk.PhotoImage(img)
+            else:
+                self.image = PhotoImage()
         self.label.configure(image=self.image)
         self.label.image=self.image
 
@@ -111,18 +122,21 @@ class GUI(Frame):
 
 
     def fittableImage(self, img):
-        if (img.width > 750) or (img.height > 500):
-            print(img.width, 'x', img.height)
-            if img.width > img.height:
-                ratio = 750 / img.width
-                newsize = (750, int(img.height * ratio))
-            else:
-                ratio = 500 / img.height
-                newsize = (int(img.width * ratio), 500)
-            img = img.resize(newsize, Image.ANTIALIAS)
+        try:
+            if (img.width > self.imgWidth) or (img.height > self.imgHeight):
+                if img.width > img.height:
+                    ratio = self.imgWidth / img.width
+                    newsize = (self.imgWidth, int(img.height * ratio))
+                else:
+                    ratio = self.imgHeight / img.height
+                    newsize = (int(img.width * ratio), self.imgHeight)
+                img = img.resize(newsize, Image.ANTIALIAS)
+        except:
+            pass
         return img
 
 root = Tk()
+root.geometry("800x600")
 ui_path = StringVar()
 app = GUI(master=root)
 app.mainloop()
