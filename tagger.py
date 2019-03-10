@@ -31,7 +31,8 @@ class GUI(Frame):
         self.deleteBtn = Button(self, text='(D)elete', command=self.delete_image)
         self.nextBtn = Button(self, text='(J) Next', command=self.skip_image)
         self.backBtn = Button(self, text='(F) Back', command=self.back_image)
-        self.ui_path = StringVar('Path: ')
+        self.ui_path = StringVar()
+        self.ui_path.set('Path: ')
         self.pathLbl = Label(self, textvariable=self.ui_path)
         self.image = PhotoImage()
         self.label = Label(image=self.image)
@@ -70,7 +71,6 @@ class GUI(Frame):
         self.updateImage()
 
     def set_next_image(self, wasSolved, back=False):
-        print("idx", self.working_image_index)
         if wasSolved:
             i = self.working_image_index
             self.workfiles = self.workfiles[:i] + self.workfiles[i+1:]
