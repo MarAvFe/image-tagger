@@ -18,6 +18,7 @@ class GUI(Frame):
         self.wdir = ''
         self.wimg = ''
         self.working_image_index = 0
+        self.workfiles = []
 
         Frame.__init__(self, master)
         w, h = WIDTH, HEIGHT
@@ -25,19 +26,25 @@ class GUI(Frame):
         master.minsize(width=300, height=300)
         self.pack()
 
-        self.file = Button(self, text='Browse', command=self.set_working_dir)
-        self.keep = Button(self, text='(K)eep', command=self.keep_image)
-        self.delete = Button(self, text='(D)elete', command=self.delete_image)
-        self.choose = Label(self, text="Choose path").pack()
+        self.browseBtn = Button(self, text='(B)rowse', command=self.set_working_dir)
+        self.keepBtn = Button(self, text='(K)eep', command=self.keep_image)
+        self.deleteBtn = Button(self, text='(D)elete', command=self.delete_image)
+        self.nextBtn = Button(self, text='(J) Next', command=self.skip_image)
+        self.backBtn = Button(self, text='(F) Back', command=self.back_image)
+        self.ui_path = StringVar('Path: ')
+        self.pathLbl = Label(self, textvariable=self.ui_path)
         self.image = PhotoImage()
         self.label = Label(image=self.image)
 
-
-        self.file.pack(side=LEFT)
-        self.keep.pack(side=LEFT)
-        self.delete.pack(side=LEFT)
+        self.pathLbl.pack()
+        self.browseBtn.pack(side=LEFT)
+        self.keepBtn.pack(side=LEFT)
+        self.deleteBtn.pack(side=LEFT)
+        self.nextBtn.pack(side=LEFT)
+        self.backBtn.pack(side=LEFT)
         self.label.pack(side=TOP)
 
+        master.bind('b', self.set_working_dir)
         master.bind('k', self.keep_image)
         master.bind('d', self.delete_image)
         master.bind('j', self.skip_image)
@@ -51,27 +58,34 @@ class GUI(Frame):
         if self.image.width() != 0:
             self.updateImage(False)
 
-    def set_working_dir(self):
+    def set_working_dir(self, event=None):
         from tkinter import filedialog
         selected = filedialog.askdirectory()
         self.wdir = selected + '/' if not selected.endswith('/') else selected
+        self.ui_path.set('Path: ' + self.wdir)
         self.workfiles = self.getContents(self.wdir)
         ok = self.setupFolders()
         if not ok:
             raise Exception("cannot create tag folders")
         self.updateImage()
 
-    def set_next_image(self, wasSolved):
+    def set_next_image(self, wasSolved, back=False):
+        print("idx", self.working_image_index)
         if wasSolved:
             i = self.working_image_index
             self.workfiles = self.workfiles[:i] + self.workfiles[i+1:]
         else:
             try:
-                self.working_image_index = (self.working_image_index + 1) % len(self.workfiles)
+                if not back:
+                    self.working_image_index = (self.working_image_index + 1) % len(self.workfiles)
+                else:
+                    self.working_image_index = (self.working_image_index - 1) % len(self.workfiles)
             except ZeroDivisionError:
                 messagebox.showinfo("Info", "Please select a folder with images")
+                return
             except Exception as e:
                 print(e)
+                return
         self.updateImage()
 
     def keep_image(self, event=None):
@@ -86,7 +100,7 @@ class GUI(Frame):
         self.set_next_image(False)
 
     def back_image(self, event=None):
-        self.set_next_image(False)
+        self.set_next_image(False, True)
 
     def updateImage(self, new=True):
         if not new:
@@ -154,7 +168,6 @@ class GUI(Frame):
 
 root = Tk()
 root.geometry("800x600")
-ui_path = StringVar()
 app = GUI(master=root)
 app.mainloop()
 root.destroy()
