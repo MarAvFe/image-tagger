@@ -5,6 +5,8 @@ I QUIT (QUick Image Tagger) to keep cluttered screenshots and Pictures folder. I
 
 ---
 
+![img](horzImageExm.png)
+
 This project provides a small interface where you can preview your images bigger than thumbnails and move them into a "Keep" or "Delete" folder. This way you can quickly soar through images to review which are valuable and which are not.
 
 This software will move the pictures into another folder but not delete them. If you're sure you want to delete them, you'll have to delete the folder yourself. Maybe an "Apply" functionality could be implemented.
@@ -42,9 +44,9 @@ And your executable will be in:
 
 ## TODOS
 
-+ Add "Next" and "Previous" buttons for browsing (handle error when going back to classified image)
-- Add previews for 5 next images and 5 previous
-+ Print in UI the path being worked on.
-+ Add resposiveness
-- Modify GUI layout: 2 side buttons with "next" and "back". Set "keep" and "delete" buttons below. Make "browse" beautiful
-- General refactoring of code (it do be a little disorganized)
+- [x] Add "Next" and "Previous" buttons for browsing (handle error when going back to classified image)
+- [ ] Add previews for 5 next images and 5 previous
+- [x] Print in UI the path being worked on.
+- [x] Add resposiveness
+- [ ] Modify GUI layout: 2 side buttons with "next" and "back". Place "keep" and "delete" buttons below.
+- [ ] General refactoring of code (it do be a little disorganized)
