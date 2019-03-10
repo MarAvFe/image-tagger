@@ -40,6 +40,8 @@ class GUI(Frame):
 
         master.bind('k', self.keep_image)
         master.bind('d', self.delete_image)
+        master.bind('j', self.skip_image)
+        master.bind('f', self.back_image)
         master.bind('<Configure>', self.on_resize)
 
         self.master = master
@@ -59,17 +61,32 @@ class GUI(Frame):
             raise Exception("cannot create tag folders")
         self.updateImage()
 
-    def set_next_image(self):
-        self.working_image_index = (self.working_image_index + 1) % len(self.workfiles)
+    def set_next_image(self, wasSolved):
+        if wasSolved:
+            i = self.working_image_index
+            self.workfiles = self.workfiles[:i] + self.workfiles[i+1:]
+        else:
+            try:
+                self.working_image_index = (self.working_image_index + 1) % len(self.workfiles)
+            except ZeroDivisionError:
+                messagebox.showinfo("Info", "Please select a folder with images")
+            except Exception as e:
+                print(e)
         self.updateImage()
 
     def keep_image(self, event=None):
         shutil.move(self.wdir+self.wimg, self.wdir+'keep/'+self.wimg)
-        self.set_next_image()
+        self.set_next_image(True)
 
     def delete_image(self, event=None):
         shutil.move(self.wdir+self.wimg, self.wdir+'delete/'+self.wimg)
-        self.set_next_image()
+        self.set_next_image(True)
+
+    def skip_image(self, event=None):
+        self.set_next_image(False)
+
+    def back_image(self, event=None):
+        self.set_next_image(False)
 
     def updateImage(self, new=True):
         if not new:
