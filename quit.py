@@ -19,6 +19,7 @@ class GUI(Frame):
         self.wimg = ''
         self.working_image_index = 0
         self.workfiles = []
+        self.lastTags = []
 
         Frame.__init__(self, master)
         w, h = WIDTH, HEIGHT
@@ -29,8 +30,10 @@ class GUI(Frame):
         self.browseBtn = Button(self, text='(B)rowse', command=self.set_working_dir)
         self.keepBtn = Button(self, text='(K)eep', command=self.keep_image)
         self.deleteBtn = Button(self, text='(D)elete', command=self.delete_image)
-        self.nextBtn = Button(self, text='(J) Next', command=self.skip_image)
+        self.nextBtn = Button(self, text='(J) Next', command=self.next_image)
         self.backBtn = Button(self, text='(F) Back', command=self.back_image)
+        self.undoBtn = Button(self, text='(Z) Undo', command=self.undo_image)
+        self.quitBtn = Button(self, text='(Q) Quit', command=self.quit)
         self.ui_path = StringVar()
         self.ui_path.set('Path: ')
         self.pathLbl = Label(self, textvariable=self.ui_path)
@@ -43,13 +46,17 @@ class GUI(Frame):
         self.deleteBtn.pack(side=LEFT)
         self.nextBtn.pack(side=LEFT)
         self.backBtn.pack(side=LEFT)
+        self.undoBtn.pack(side=LEFT)
+        self.quitBtn.pack(side=LEFT)
         self.label.pack(side=TOP)
 
         master.bind('b', self.set_working_dir)
         master.bind('k', self.keep_image)
         master.bind('d', self.delete_image)
-        master.bind('j', self.skip_image)
+        master.bind('j', self.next_image)
         master.bind('f', self.back_image)
+        master.bind('z', self.undo_image)
+        master.bind('q', self.quit)
         master.bind('<Configure>', self.on_resize)
 
         self.master = master
@@ -57,82 +64,107 @@ class GUI(Frame):
     def on_resize(self, event):
         self.imgWidth, self.imgHeight = self.master.winfo_width()-50, self.master.winfo_height()-50
         if self.image.width() != 0:
-            self.updateImage(False)
+            self.update_image(False)
 
     def set_working_dir(self, event=None):
         from tkinter import filedialog
         selected = filedialog.askdirectory()
         self.wdir = selected + '/' if not selected.endswith('/') else selected
         self.ui_path.set('Path: ' + self.wdir)
-        self.workfiles = self.getContents(self.wdir)
-        ok = self.setupFolders()
+        self.workfiles = self.get_contents(self.wdir)
+        self.workfiles.sort()
+        ok = self.setup_folders()
         if not ok:
             raise Exception("cannot create tag folders")
-        self.updateImage()
-
-    def set_next_image(self, wasSolved, back=False):
-        if wasSolved:
-            i = self.working_image_index
-            self.workfiles = self.workfiles[:i] + self.workfiles[i+1:]
-        else:
-            try:
-                if not back:
-                    self.working_image_index = (self.working_image_index + 1) % len(self.workfiles)
-                else:
-                    self.working_image_index = (self.working_image_index - 1) % len(self.workfiles)
-            except ZeroDivisionError:
-                messagebox.showinfo("Info", "Please select a folder with images")
-                return
-            except Exception as e:
-                print(e)
-                return
-        self.updateImage()
+        self.update_image()
 
     def keep_image(self, event=None):
-        shutil.move(self.wdir+self.wimg, self.wdir+'keep/'+self.wimg)
-        self.set_next_image(True)
+        self.classify(True)
 
     def delete_image(self, event=None):
-        shutil.move(self.wdir+self.wimg, self.wdir+'delete/'+self.wimg)
-        self.set_next_image(True)
+        self.classify(False)
 
-    def skip_image(self, event=None):
-        self.set_next_image(False)
+    def next_image(self, event=None):
+        self.move_index(False)
 
     def back_image(self, event=None):
-        self.set_next_image(False, True)
+        self.move_index(True)
 
-    def updateImage(self, new=True):
+    def undo_image(self, event=None):
+        src, tag = self.retrieve_tag()
+        if tag == '':
+            return
+        print(' ', self.workfiles)
+        shutil.move(self.wdir+src+tag, self.wdir+tag)
+        self.workfiles.insert(self.working_image_index, tag)
+        self.update_image()
+        print(' ', self.workfiles)
+
+    def classify(self, keep):
+        dst = 'keep/' if keep else 'delete/'
+        self.save_tag(dst, self.wimg)
+        shutil.move(self.wdir+self.wimg, self.wdir+dst+self.wimg)
+        i = self.working_image_index
+        print(i, self.workfiles)
+        self.workfiles = self.workfiles[:i] + self.workfiles[i+1:]
+        if i == len(self.workfiles):  # If reached  the end, loop up
+            self.move_index(False)
+        else:
+            self.update_image()
+
+    def move_index(self, goBack):
+        if len(self.workfiles) == 0:
+            messagebox.showinfo("Info", "Please select a folder with images")
+            return
+        if goBack:
+            self.working_image_index = (self.working_image_index - 1) % len(self.workfiles)
+        else:
+            self.working_image_index = (self.working_image_index + 1) % len(self.workfiles)
+        self.update_image()
+
+    def save_tag(self, dst, name):
+        self.lastTags.append((dst, name))
+        self.lastTags = self.lastTags[-10:]
+
+    def retrieve_tag(self):
+        if len(self.lastTags) == 0:
+            messagebox.showinfo("Warning", "History limit reached!")
+            return '', ''
+        spliced, popped  = self.lastTags[:-1], self.lastTags[-1]
+        self.lastTags = spliced
+        return popped[0], popped[1]  # dst, tag
+
+    def update_image(self, new=True):
         if not new:
-            img = self.fittableImage(self.tmpImg)
+            img = self.fittable_image(self.tmpImg)
             self.image = ImageTk.PhotoImage(img)
         else:
-            self.tmpImg = self.getNextImage()
+            self.tmpImg = self.get_next_image()
             if self.tmpImg != None:
-                img = self.fittableImage(self.tmpImg)
+                img = self.fittable_image(self.tmpImg)
                 self.image = ImageTk.PhotoImage(img)
             else:
                 self.image = PhotoImage()
         self.label.configure(image=self.image)
         self.label.image=self.image
 
-    def getNextImage(self):
+    def get_next_image(self):
+        if len(self.workfiles) == 0:
+            messagebox.showinfo("Not Found", "No images found in path: " + self.wdir)
+            img = None
         try:
             self.wimg = self.workfiles[self.working_image_index]
             img = Image.open(self.wdir + self.wimg)
-        except IndexError:
-            messagebox.showinfo("Error", "No images found in path: " + self.wdir)
-            img = None
-        except (FileNotFoundError):
+        except FileNotFoundError:
             if (os.path.exists(self.wdir + 'keep/' + self.wimg)) or (os.path.exists(self.wdir + 'delete/' + self.wimg)):
-                messagebox.showinfo("Done!", "Finished tagging")
+                messagebox.showsuccess("Done!", "Finished tagging")
             else:
-                messagebox.showinfo("Error", "Something happened. Check the stacktrace.")
+                messagebox.showerror("Error", "Something happened. Check the stacktrace.")
                 raise Exception("Something happened")
             img = None
         return img
 
-    def setupFolders(self):
+    def setup_folders(self):
         tags = ['keep', 'delete']
         for folder in tags:
             fullPath = self.wdir+folder
@@ -144,7 +176,7 @@ class GUI(Frame):
         return True
 
 
-    def getContents(self, dirname):
+    def get_contents(self, dirname):
         images = []
         for file in os.listdir(dirname):
             if file[-3:] in ['png','jpg','gif']:
@@ -152,7 +184,7 @@ class GUI(Frame):
         return images
 
 
-    def fittableImage(self, img):
+    def fittable_image(self, img):
         try:
             if (img.width > self.imgWidth) or (img.height > self.imgHeight):
                 if img.width > img.height:
@@ -166,8 +198,14 @@ class GUI(Frame):
             pass
         return img
 
-root = Tk()
-root.geometry("800x600")
-app = GUI(master=root)
-app.mainloop()
-root.destroy()
+    def quit(self, event=None):
+        self.master.destroy()
+
+try:
+    root = Tk()
+    root.geometry("800x600")
+    app = GUI(master=root)
+    app.mainloop()
+    root.destroy()
+except TclError:
+    pass
