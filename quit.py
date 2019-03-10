@@ -10,11 +10,13 @@ import os, shutil
 
 WIDTH=800
 HEIGHT=600
+HMARGIN=50
+VMARGIN=60
 
 class GUI(Frame):
 
     def __init__(self, master=None):
-        global WIDTH, HEIGHT
+        global WIDTH, HEIGHT, HMARGIN, VMARGIN
         self.wdir = ''
         self.wimg = ''
         self.working_image_index = 0
@@ -23,7 +25,7 @@ class GUI(Frame):
 
         Frame.__init__(self, master)
         w, h = WIDTH, HEIGHT
-        self.imgWidth, self.imgHeight = WIDTH-50, HEIGHT-50
+        self.imgWidth, self.imgHeight = WIDTH-HMARGIN, HEIGHT-VMARGIN
         master.minsize(width=300, height=300)
         self.pack()
 
@@ -62,7 +64,7 @@ class GUI(Frame):
         self.master = master
 
     def on_resize(self, event):
-        self.imgWidth, self.imgHeight = self.master.winfo_width()-50, self.master.winfo_height()-50
+        self.imgWidth, self.imgHeight = self.master.winfo_width()-HMARGIN, self.master.winfo_height()-VMARGIN
         if self.image.width() != 0:
             self.update_image(False)
 
@@ -94,18 +96,15 @@ class GUI(Frame):
         src, tag = self.retrieve_tag()
         if tag == '':
             return
-        print(' ', self.workfiles)
         shutil.move(self.wdir+src+tag, self.wdir+tag)
         self.workfiles.insert(self.working_image_index, tag)
         self.update_image()
-        print(' ', self.workfiles)
 
     def classify(self, keep):
         dst = 'keep/' if keep else 'delete/'
         self.save_tag(dst, self.wimg)
         shutil.move(self.wdir+self.wimg, self.wdir+dst+self.wimg)
         i = self.working_image_index
-        print(i, self.workfiles)
         self.workfiles = self.workfiles[:i] + self.workfiles[i+1:]
         if i == len(self.workfiles):  # If reached  the end, loop up
             self.move_index(False)
@@ -186,15 +185,16 @@ class GUI(Frame):
 
     def fittable_image(self, img):
         try:
-            if (img.width > self.imgWidth) or (img.height > self.imgHeight):
-                if img.width > img.height:
-                    ratio = self.imgWidth / img.width
-                    newsize = (self.imgWidth, int(img.height * ratio))
-                else:
-                    ratio = self.imgHeight / img.height
-                    newsize = (int(img.width * ratio), self.imgHeight)
+            if img.width > self.imgWidth:
+                ratio = self.imgWidth / img.width
+                newsize = (self.imgWidth, int(img.height * ratio))
+                img = img.resize(newsize, Image.ANTIALIAS)
+            if img.height > self.imgHeight:
+                ratio = self.imgHeight / img.height
+                newsize = (int(img.width * ratio), self.imgHeight)
                 img = img.resize(newsize, Image.ANTIALIAS)
         except:
+            # If failed to resize, just return as is
             pass
         return img
 
