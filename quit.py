@@ -154,6 +154,7 @@ class GUI(Frame):
         try:
             self.wimg = self.workfiles[self.working_image_index]
             img = Image.open(self.wdir + self.wimg)
+            self.ui_path.set('Path: ' + self.wdir + self.wimg)
         except FileNotFoundError:
             if (os.path.exists(self.wdir + 'keep/' + self.wimg)) or (os.path.exists(self.wdir + 'delete/' + self.wimg)):
                 messagebox.showsuccess("Done!", "Finished tagging")
