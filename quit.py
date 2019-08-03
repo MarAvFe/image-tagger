@@ -22,6 +22,7 @@ class GUI(Frame):
         self.working_image_index = 0
         self.workfiles = []
         self.lastTags = []
+        self.totalImages = 0
 
         Frame.__init__(self, master)
         w, h = WIDTH, HEIGHT
@@ -37,7 +38,7 @@ class GUI(Frame):
         self.undoBtn = Button(self, text='(Z) Undo', command=self.undo_image)
         self.quitBtn = Button(self, text='(Q) Quit', command=self.quit)
         self.ui_path = StringVar()
-        self.ui_path.set('Path: ')
+        self.ui_path.set('(0%) Path: ')
         self.pathLbl = Label(self, textvariable=self.ui_path)
         self.image = PhotoImage()
         self.label = Label(image=self.image)
@@ -72,9 +73,10 @@ class GUI(Frame):
         from tkinter import filedialog
         selected = filedialog.askdirectory()
         self.wdir = selected + '/' if not selected.endswith('/') else selected
-        self.ui_path.set('Path: ' + self.wdir)
+        # self.ui_path.set('Path: ' + self.wdir)
         self.workfiles = self.get_contents(self.wdir)
         self.workfiles.sort()
+        self.totalImages = len(self.workfiles)
         ok = self.setup_folders()
         if not ok:
             raise Exception("cannot create tag folders")
@@ -154,7 +156,8 @@ class GUI(Frame):
         try:
             self.wimg = self.workfiles[self.working_image_index]
             img = Image.open(self.wdir + self.wimg)
-            self.ui_path.set('Path: ' + self.wdir + self.wimg)
+            percentage = str( 100 - int( (len(self.workfiles) / self.totalImages) * 100))
+            self.ui_path.set('(' + percentage + '%/' + str(self.totalImages) +') Path: ' + self.wdir + self.wimg)  # (45%/381) Path: /some/path
         except FileNotFoundError:
             if (os.path.exists(self.wdir + 'keep/' + self.wimg)) or (os.path.exists(self.wdir + 'delete/' + self.wimg)):
                 messagebox.showsuccess("Done!", "Finished tagging")
@@ -179,7 +182,7 @@ class GUI(Frame):
     def get_contents(self, dirname):
         images = []
         for file in os.listdir(dirname):
-            if file[-3:] in ['png','jpg','gif']:
+            if file[-4:].lower() in ['.png','.jpg','.gif', 'jpeg']:
                 images.append(file)
         return images
 
